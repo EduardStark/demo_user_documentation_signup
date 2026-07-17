@@ -14,6 +14,7 @@ interface RegistroData {
   dateOfBirth: string | null
   confidence: number
   economicActivities?: EconomicActivity[]
+  isBlacklisted?: boolean
 }
 
 export default function CredencialesPage() {
@@ -65,6 +66,7 @@ export default function CredencialesPage() {
         fullName={data.fullName}
         age={data.age}
         economicActivities={data.economicActivities}
+        isBlacklisted={data.isBlacklisted ?? false}
       />
 
       <button

@@ -5,6 +5,7 @@ import { isValidCurp } from '@/lib/validation/curp'
 import { isValidRfc } from '@/lib/validation/rfc'
 import { checkEconomicActivitiesSum } from '@/lib/validation/economicActivities'
 import type { EconomicActivity } from '@/lib/ocr'
+import BlacklistAlert from '@/components/BlacklistAlert'
 
 interface CredentialFields {
   name: string
@@ -19,6 +20,7 @@ interface CredentialsDisplayProps {
   fullName: string
   age: number
   economicActivities?: EconomicActivity[]
+  isBlacklisted?: boolean
 }
 
 function ConfidenceMeter({ value }: { value: number }) {
@@ -98,8 +100,10 @@ export default function CredentialsDisplay({
   fullName,
   age,
   economicActivities,
+  isBlacklisted = false,
 }: CredentialsDisplayProps) {
   const [fields, setFields] = useState<CredentialFields>(initialFields)
+  const [showAlert, setShowAlert] = useState(isBlacklisted)
 
   const set =
     (key: keyof CredentialFields) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -112,8 +116,10 @@ export default function CredentialsDisplay({
   const total = activities.reduce((s, a) => s + a.percentage, 0)
 
   return (
+    <>
+      {showAlert && <BlacklistAlert onClose={() => setShowAlert(false)} />}
     <div className="w-full max-w-sm flex flex-col gap-6">
-    <div className="rounded-2xl overflow-hidden shadow-2xl border border-zinc-200 dark:border-zinc-700">
+    <div className={`rounded-2xl overflow-hidden shadow-2xl border ${isBlacklisted ? 'border-red-500/50' : 'border-zinc-200 dark:border-zinc-700'}`}>
       {/* Card header */}
       <div className="relative bg-zinc-900 px-6 pt-6 pb-5 overflow-hidden">
         {/* Decorative chip */}
@@ -126,6 +132,13 @@ export default function CredentialsDisplay({
         <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-3">
           Identificación digital
         </p>
+
+        {isBlacklisted && (
+          <div className="inline-flex items-center gap-1.5 bg-red-950 border border-red-500/50 rounded-full px-3 py-1 mb-3">
+            <span className="text-xs leading-none">⛔</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-red-400">Lista Negra SAT</span>
+          </div>
+        )}
 
         <p className="text-white font-semibold text-base leading-snug truncate pr-14">
           {fullName}
@@ -205,5 +218,6 @@ export default function CredentialsDisplay({
       </div>
     )}
     </div>
+    </>
   )
 }

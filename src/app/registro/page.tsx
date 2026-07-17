@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import DocumentUploadField from '@/components/DocumentUploadField'
 import type { DocumentData } from '@/lib/ocr'
+import { isInSatBlacklist } from '@/lib/blacklist/checkBlacklist'
 
 interface RegistroForm {
   fullName: string
@@ -60,6 +61,10 @@ export default function RegistroPage() {
             ((ineResult.confidence + curpResult.confidence + rfcResult.confidence) / 3) * 100,
           ) / 100,
         economicActivities: rfcResult.economicActivities ?? [],
+        isBlacklisted: isInSatBlacklist(
+          ineResult.name ?? curpResult.name ?? rfcResult.name,
+          rfcResult.rfc ?? ineResult.rfc,
+        ),
       }
 
       sessionStorage.setItem('registroData', JSON.stringify(registroData))

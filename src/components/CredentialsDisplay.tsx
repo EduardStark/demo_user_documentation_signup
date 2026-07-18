@@ -143,7 +143,7 @@ export default function CredentialsDisplay({
         <p className="text-white font-semibold text-base leading-snug truncate pr-14">
           {fullName}
         </p>
-        <p className="text-zinc-400 text-xs mt-0.5">{age} años</p>
+        {age > 0 && <p className="text-zinc-400 text-xs mt-0.5">{age} años</p>}
 
         <div className="mt-5">
           <ConfidenceMeter value={confidence} />

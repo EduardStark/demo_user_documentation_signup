@@ -8,11 +8,19 @@ import type { DocumentData } from '@/lib/ocr'
 import { isInSatBlacklist } from '@/lib/blacklist/checkBlacklist'
 
 interface RegistroForm {
-  fullName: string
-  age: number
   inePhoto: File | null
   curpPhoto: File | null
   rfcPhoto: File | null
+}
+
+function ageFromDob(dob: string | null): number {
+  if (!dob) return 0
+  const birth = new Date(dob)
+  const today = new Date()
+  let age = today.getFullYear() - birth.getFullYear()
+  const m = today.getMonth() - birth.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
+  return age
 }
 
 async function uploadDocument(file: File): Promise<DocumentData> {
@@ -31,12 +39,11 @@ export default function RegistroPage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   const {
-    register,
     control,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<RegistroForm>({
-    defaultValues: { fullName: '', age: undefined, inePhoto: null, curpPhoto: null, rfcPhoto: null },
+    defaultValues: { inePhoto: null, curpPhoto: null, rfcPhoto: null },
   })
 
   const onSubmit = async (data: RegistroForm) => {
@@ -48,11 +55,13 @@ export default function RegistroPage() {
         uploadDocument(data.rfcPhoto!),
       ])
 
+      const mergedName = ineResult.name ?? curpResult.name ?? rfcResult.name
+      const mergedDob = ineResult.dateOfBirth ?? curpResult.dateOfBirth
       const registroData = {
-        fullName: data.fullName,
-        age: data.age,
+        fullName: mergedName ?? '',
+        age: ageFromDob(mergedDob),
         // Prefer the document best suited to each field
-        name: ineResult.name ?? curpResult.name ?? rfcResult.name,
+        name: mergedName,
         curp: curpResult.curp ?? ineResult.curp,
         rfc: rfcResult.rfc ?? ineResult.rfc,
         dateOfBirth: ineResult.dateOfBirth ?? curpResult.dateOfBirth,
@@ -61,10 +70,7 @@ export default function RegistroPage() {
             ((ineResult.confidence + curpResult.confidence + rfcResult.confidence) / 3) * 100,
           ) / 100,
         economicActivities: rfcResult.economicActivities ?? [],
-        isBlacklisted: isInSatBlacklist(
-          ineResult.name ?? curpResult.name ?? rfcResult.name,
-          rfcResult.rfc ?? ineResult.rfc,
-        ),
+        isBlacklisted: isInSatBlacklist(mergedName, rfcResult.rfc ?? ineResult.rfc),
       }
 
       sessionStorage.setItem('registroData', JSON.stringify(registroData))
@@ -78,60 +84,10 @@ export default function RegistroPage() {
     <div className="min-h-screen p-8 max-w-xl mx-auto">
       <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50 mb-1">Registro</h1>
       <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-8">
-        Completa tus datos y sube los documentos requeridos.
+        Sube tus documentos para extraer los datos automáticamente.
       </p>
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-6">
-        {/* Personal data */}
-        <section className="flex flex-col gap-4">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-400">
-            Datos personales
-          </h2>
-
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="fullName" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Nombre completo
-            </label>
-            <input
-              id="fullName"
-              type="text"
-              autoComplete="name"
-              placeholder="Nombre(s) y apellidos"
-              {...register('fullName', {
-                required: 'El nombre es requerido',
-                minLength: { value: 3, message: 'Mínimo 3 caracteres' },
-              })}
-              className="rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-500 disabled:opacity-50"
-            />
-            {errors.fullName && (
-              <p className="text-xs text-red-600 dark:text-red-400">{errors.fullName.message}</p>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="age" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Edad
-            </label>
-            <input
-              id="age"
-              type="number"
-              min={1}
-              max={120}
-              placeholder="Ej. 30"
-              {...register('age', {
-                required: 'La edad es requerida',
-                min: { value: 1, message: 'Edad mínima: 1' },
-                max: { value: 120, message: 'Edad máxima: 120' },
-                valueAsNumber: true,
-              })}
-              className="rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-500 w-32 disabled:opacity-50"
-            />
-            {errors.age && (
-              <p className="text-xs text-red-600 dark:text-red-400">{errors.age.message}</p>
-            )}
-          </div>
-        </section>
-
         {/* Documents */}
         <section className="flex flex-col gap-4">
           <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-400">
